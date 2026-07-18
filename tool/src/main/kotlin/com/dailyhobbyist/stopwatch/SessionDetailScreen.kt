@@ -17,6 +17,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.thelightphone.sdk.LightScreen
 import com.thelightphone.sdk.SealedLightActivity
@@ -149,14 +150,24 @@ private fun LapDetailRow(
             .padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            LightText(text = label, variant = LightTextVariant.Detail)
+        Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            LightText(text = label, variant = LightTextVariant.Copy, maxLines = 1)
             if (tag != null) {
-                LightText(text = tag, variant = LightTextVariant.Micro)
+                Spacer(modifier = Modifier.width(8.dp))
+                LightText(
+                    text = tag,
+                    variant = LightTextVariant.Copy,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
-        LightText(text = formatTime(split), variant = LightTextVariant.Detail)
-        Spacer(modifier = Modifier.width(18.dp))
-        LightText(text = formatTime(total), variant = LightTextVariant.Fine)
+        Spacer(modifier = Modifier.width(12.dp))
+        LightText(text = formatTime(split), variant = LightTextVariant.Copy, maxLines = 1)
+        Spacer(modifier = Modifier.width(14.dp))
+        LightText(text = formatTime(total), variant = LightTextVariant.Detail, maxLines = 1)
     }
 }

@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.thelightphone.sdk.ui.designVerticalPxToSp
 import androidx.compose.ui.unit.isSpecified
@@ -93,18 +94,24 @@ class StopwatchScreen(sealedActivity: SealedLightActivity) :
                 )
 
                 // ---- controls ----
+                // Three slots so the primary action always sits dead center:
+                // your thumb never moves between START and LAP.
                 val hasTime = elapsed > 0L || laps.isNotEmpty()
                 val items: List<LightBarButton?> = when {
                     isRunning -> listOf(
+                        null,
                         LightBarButton.Text("LAP") { viewModel.lap() },
                         LightBarButton.Text("STOP") { viewModel.startStop() },
                     )
                     hasTime -> listOf(
-                        LightBarButton.Text("RESET") { viewModel.reset() },
+                        null,
                         LightBarButton.Text("START") { viewModel.startStop() },
+                        LightBarButton.Text("RESET") { viewModel.reset() },
                     )
                     else -> listOf(
+                        null,
                         LightBarButton.Text("START") { viewModel.startStop() },
+                        null,
                     )
                 }
                 LightBottomBar(items = items)
@@ -178,28 +185,38 @@ private fun LapRow(
             .padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             LightText(
                 text = label,
-                variant = LightTextVariant.Detail,
+                variant = LightTextVariant.Copy,
+                maxLines = 1,
             )
             if (tag != null) {
+                Spacer(modifier = Modifier.width(8.dp))
                 LightText(
                     text = tag,
-                    variant = LightTextVariant.Micro,
+                    variant = LightTextVariant.Copy,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
+        Spacer(modifier = Modifier.width(12.dp))
         // lap split (the headline number for the row)
         LightText(
             text = formatTime(split),
-            variant = LightTextVariant.Detail,
+            variant = LightTextVariant.Copy,
+            maxLines = 1,
         )
-        Spacer(modifier = Modifier.width(18.dp))
+        Spacer(modifier = Modifier.width(14.dp))
         // running total at that lap
         LightText(
             text = formatTime(total),
-            variant = LightTextVariant.Fine,
+            variant = LightTextVariant.Detail,
+            maxLines = 1,
         )
     }
 }
