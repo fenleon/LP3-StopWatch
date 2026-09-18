@@ -181,13 +181,13 @@ class StopwatchScreen(sealedActivity: SealedLightActivity) :
                     Box(Modifier.weight(0.26f), contentAlignment = Alignment.Center) {
                         if (hasTime) BarButton("RESET") { haptic(); viewModel.reset() }
                     }
-                    Box(Modifier.weight(0.40f), contentAlignment = Alignment.Center) {
+                    Box(Modifier.weight(0.415f), contentAlignment = Alignment.Center) {
                         BarButton(if (isRunning) "STOP" else "START") { haptic(); viewModel.startStop() }
                     }
-                    Box(Modifier.weight(0.14f), contentAlignment = Alignment.Center) {
+                    Box(Modifier.weight(0.20f), contentAlignment = Alignment.Center) {
                         if (isRunning) BarButton("LAP") { haptic(); viewModel.lap() }
                     }
-                    Spacer(Modifier.weight(0.20f))
+                    Spacer(Modifier.weight(0.125f))
                 }
             }
         }

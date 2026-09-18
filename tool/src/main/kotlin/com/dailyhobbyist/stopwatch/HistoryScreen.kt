@@ -122,11 +122,15 @@ private fun SessionRow(
                 text = formatSessionDate(session.startedAtWall),
                 variant = LightTextVariant.Detail,
             )
-            LightText(
-                text = formatSessionTime(session.startedAtWall) +
-                    "  ·  " + lapCountLabel(session.laps.size),
-                variant = LightTextVariant.Fine,
-            )
+            // the laps line makes way while confirming so CANCEL REMOVE
+            // fit on the time line
+            if (!confirmingDelete) {
+                LightText(
+                    text = formatSessionTime(session.startedAtWall) +
+                        "  ·  " + lapCountLabel(session.laps.size),
+                    variant = LightTextVariant.Fine,
+                )
+            }
         }
         Spacer(modifier = Modifier.width(12.dp))
         if (confirmingDelete) {
@@ -150,9 +154,7 @@ private fun SessionRow(
             LightIcon(
                 icon = LightIcons.CLOSE,
                 size = 1.5f,
-                modifier = Modifier
-                    .align(Alignment.CenterVertically)
-                    .lightClickable { confirmingDelete = true },
+                modifier = Modifier.lightClickable { confirmingDelete = true },
             )
         }
     }
