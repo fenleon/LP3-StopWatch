@@ -1,5 +1,6 @@
 package com.dailyhobbyist.stopwatch
 
+import android.os.SystemClock
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.focusable
@@ -18,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -70,7 +72,10 @@ class StopwatchScreen(sealedActivity: SealedLightActivity) :
         val haptics = LocalHapticFeedback.current
         val focusRequester = remember { FocusRequester() }
         fun haptic() {
-            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+            haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+        }
+        fun hapticTick() {
+            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
         }
 
         LightTheme(colors = themeColors) {
@@ -111,7 +116,11 @@ class StopwatchScreen(sealedActivity: SealedLightActivity) :
                 )
 
                 // ---- big time display, centred like the LightOS Timer ----
-                // Tap = start/stop, double-tap = lap.
+                // Tap = start/stop instantly; a second tap within the
+                // double-tap window re-interprets the pair as a lap (the
+                // first tap's toggle is reverted). detectTapGestures'
+                // onDoubleTap would delay every tap by its 300 ms timeout.
+                val gestureState = remember { mutableLongStateOf(0L) }
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -119,12 +128,26 @@ class StopwatchScreen(sealedActivity: SealedLightActivity) :
                         .pointerInput(Unit) {
                             detectTapGestures(
                                 onTap = {
-                                    haptic()
-                                    viewModel.startStop()
-                                },
-                                onDoubleTap = {
-                                    haptic()
-                                    viewModel.lap()
+                                    val now = SystemClock.elapsedRealtime()
+                                    val lastTapAt = gestureState.longValue and 0xFFFFFFFFL
+                                    val lastToggled = (gestureState.longValue shr 32).toInt()
+                                    if (now - lastTapAt < 300L &&
+                                        viewModel.isRunning.value != (lastToggled == 1)
+                                    ) {
+                                        // second tap of a double: undo the first
+                                        // tap's toggle, then lap
+                                        viewModel.startStop()
+                                        gestureState.longValue = 0L
+                                        hapticTick()
+                                        viewModel.lap()
+                                    } else {
+                                        val wasRunning = viewModel.isRunning.value
+                                        gestureState.longValue =
+                                            (if (wasRunning) 1L shl 32 else 0L) or
+                                                (now and 0xFFFFFFFFL)
+                                        haptic()
+                                        viewModel.startStop()
+                                    }
                                 },
                             )
                         },
@@ -152,7 +175,7 @@ class StopwatchScreen(sealedActivity: SealedLightActivity) :
                     isRunning -> listOf(
                         LightBarButton.Text("RESET") { haptic(); viewModel.reset() },
                         LightBarButton.Text("STOP") { haptic(); viewModel.startStop() },
-                        LightBarButton.Text("LAP") { haptic(); viewModel.lap() },
+                        LightBarButton.Text("LAP") { hapticTick(); viewModel.lap() },
                     )
                     hasTime -> listOf(
                         LightBarButton.Text("RESET") { haptic(); viewModel.reset() },
