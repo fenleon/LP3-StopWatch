@@ -26,8 +26,10 @@ internal fun TimeCell(text: String, modifier: Modifier = Modifier) {
     val style = scaledTimeStyleInternal(raw).copy(fontFeatureSettings = "tnum")
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
+    // widest reachable format: the 99:59 display cap means H:MM:SS.hh
+    // never occurs — sizing for it starved every label on the LP3
     val cellWidth = remember(style) {
-        with(density) { measurer.measure("1:12:34.56", style).size.width.toDp() }
+        with(density) { measurer.measure("88:88.88", style).size.width.toDp() }
     }
     // single Text node — one per-cell composable keeps long lists smooth
     // (tnum tabular digits keep the columns steady like the slots did)

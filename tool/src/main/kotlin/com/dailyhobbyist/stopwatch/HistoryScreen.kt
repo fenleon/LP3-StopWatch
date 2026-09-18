@@ -128,7 +128,7 @@ private fun SessionRow(
             // fit on the time line (the time itself stays)
             LightText(
                 text = formatSessionTime(session.startedAtWall) +
-                    if (!confirmingDelete) "  ·  " + lapCountLabel(session.laps.size) else "",
+                    if (!confirmingDelete) " · " + lapCountLabel(session.laps.size) else "",
                 variant = LightTextVariant.Fine,
                 maxLines = 1,
             )
