@@ -167,7 +167,7 @@ private fun SessionRow(
             // centres the X between the times column and the scrollbar rail.
             Box(
                 modifier = Modifier
-                    .offset(x = 0.6f.gridUnitsAsDp())
+                    .offset(x = 0.6f.gridUnitsAsDp(), y = 0.2f.gridUnitsAsDp())
                     .height(1.5f.gridUnitsAsDp()),
                 contentAlignment = Alignment.Center,
             ) {

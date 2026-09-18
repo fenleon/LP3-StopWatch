@@ -69,11 +69,12 @@ class SessionDetailScreen(
                     ),
                 )
 
-                // total time header
+                // total time header — tight top/bottom buffers so six lap
+                // rows fit without a scrollbar
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 18.dp, bottom = 14.dp),
+                        .padding(top = 8.dp, bottom = 6.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     LightText(
