@@ -44,7 +44,7 @@ import com.thelightphone.sdk.InitialScreen
 import com.thelightphone.sdk.LightScreen
 import com.thelightphone.sdk.SealedLightActivity
 import com.thelightphone.sdk.ui.LightBarButton
-import com.thelightphone.sdk.ui.LightBottomBar
+import com.thelightphone.sdk.ui.lightClickable
 import com.thelightphone.sdk.ui.LightLazyScrollView
 import com.thelightphone.sdk.ui.LightScrollBarPosition
 import com.thelightphone.sdk.ui.rememberLightHapticClick
@@ -97,9 +97,11 @@ class StopwatchScreen(sealedActivity: SealedLightActivity) :
                                 true
                             }
                             Key.VolumeUp -> {
-                                // running: lap; stopped: reset
-                                haptic()
-                                if (isRunning) viewModel.lap() else viewModel.reset()
+                                // running: lap; stopped: reset — silent at 0
+                                if (elapsed > 0L || laps.isNotEmpty()) {
+                                    haptic()
+                                    if (isRunning) viewModel.lap() else viewModel.reset()
+                                }
                                 true
                             }
                             else -> false
@@ -164,28 +166,48 @@ class StopwatchScreen(sealedActivity: SealedLightActivity) :
                     modifier = Modifier.fillMaxWidth(),
                 )
 
-                // ---- controls: RESET left · START/STOP centre · LAP right ----
+                // ---- controls ----
+                // LAP sits centred between START/STOP and the right edge:
+                // centres land at ~18% · 50% · 75% of the screen width.
                 val hasTime = elapsed > 0L || laps.isNotEmpty()
-                val items: List<LightBarButton?> = when {
-                    isRunning -> listOf(
-                        LightBarButton.Text("RESET") { haptic(); viewModel.reset() },
-                        LightBarButton.Text("STOP") { haptic(); viewModel.startStop() },
-                        LightBarButton.Text("LAP") { haptic(); viewModel.lap() },
-                    )
-                    hasTime -> listOf(
-                        LightBarButton.Text("RESET") { haptic(); viewModel.reset() },
-                        LightBarButton.Text("START") { haptic(); viewModel.startStop() },
-                        null,
-                    )
-                    else -> listOf(
-                        null,
-                        LightBarButton.Text("START") { haptic(); viewModel.startStop() },
-                        null,
-                    )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 1f.gridUnitsAsDp())
+                        .height(4f.gridUnitsAsDp())
+                        .padding(start = 2f.gridUnitsAsDp()),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(Modifier.weight(0.25f), contentAlignment = Alignment.Center) {
+                        if (hasTime) BarButton("RESET") { haptic(); viewModel.reset() }
+                    }
+                    Box(Modifier.weight(0.42f), contentAlignment = Alignment.Center) {
+                        BarButton(if (isRunning) "STOP" else "START") { haptic(); viewModel.startStop() }
+                    }
+                    Box(Modifier.weight(0.12f), contentAlignment = Alignment.Center) {
+                        if (isRunning) BarButton("LAP") { haptic(); viewModel.lap() }
+                    }
+                    Spacer(Modifier.weight(0.21f))
                 }
-                LightBottomBar(items = items)
             }
         }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Bottom bar button — same Button-variant text and full bar height as the
+// SDK's LightBottomBar, but freely positionable.
+// ---------------------------------------------------------------------------
+
+@Composable
+private fun BarButton(label: String, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .height(4f.gridUnitsAsDp())
+            .lightClickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        LightText(text = label, variant = LightTextVariant.Button, maxLines = 1)
     }
 }
 

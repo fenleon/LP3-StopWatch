@@ -137,7 +137,7 @@ private fun SessionRow(
             )
             Spacer(modifier = Modifier.width(12.dp))
             LightText(
-                text = "DELETE",
+                text = "REMOVE",
                 variant = LightTextVariant.Fine,
                 modifier = Modifier.lightClickable {
                     confirmingDelete = false
@@ -149,8 +149,10 @@ private fun SessionRow(
             Spacer(modifier = Modifier.width(12.dp))
             LightIcon(
                 icon = LightIcons.CLOSE,
-                size = 1f,
-                modifier = Modifier.lightClickable { confirmingDelete = true },
+                size = 1.5f,
+                modifier = Modifier
+                    .align(Alignment.CenterVertically)
+                    .lightClickable { confirmingDelete = true },
             )
         }
     }

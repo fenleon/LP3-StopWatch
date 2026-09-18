@@ -113,7 +113,12 @@ class StopwatchViewModel(
 
         // Save this run to history (if it actually recorded any time).
         val total = accumulated
-        val runLaps = laps.value
+        var runLaps = laps.value
+        // the final segment after the last LAP press counts as the last lap,
+        // so the detail panel shows the complete breakdown
+        if (total > 0L && (runLaps.isEmpty() || total > runLaps.last())) {
+            runLaps = runLaps + total
+        }
         val startWall = if (runStartedWall != 0L) runStartedWall else now()
         if (total > 0L) {
             val session = StopwatchSession(

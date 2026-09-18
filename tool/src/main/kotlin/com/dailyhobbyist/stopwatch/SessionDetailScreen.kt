@@ -117,7 +117,7 @@ class SessionDetailScreen(
                 // delete is immediate — confirmation lives on the history list
                 LightBottomBar(
                     items = listOf(
-                        LightBarButton.Text("DELETE") {
+                        LightBarButton.Text("REMOVE") {
                             viewModel.confirmDelete { goBack() }
                         },
                     ),
