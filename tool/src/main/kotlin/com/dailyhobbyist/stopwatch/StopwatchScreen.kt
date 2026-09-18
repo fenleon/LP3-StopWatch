@@ -1,6 +1,5 @@
 package com.dailyhobbyist.stopwatch
 
-import android.os.SystemClock
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.focusable
@@ -15,12 +14,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -31,7 +35,10 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Text
@@ -116,11 +123,11 @@ class StopwatchScreen(sealedActivity: SealedLightActivity) :
                 )
 
                 // ---- big time display, centred like the LightOS Timer ----
-                // Tap = start/stop instantly; a second tap within the
-                // double-tap window re-interprets the pair as a lap (the
-                // first tap's toggle is reverted). detectTapGestures'
-                // onDoubleTap would delay every tap by its 300 ms timeout.
-                val gestureState = remember { mutableLongStateOf(0L) }
+                // Tap = start/stop, double-tap = lap. The toggle fires after a
+                // short fuse so the second tap of a double can cancel it and
+                // lap instead — the watch never visibly pauses mid-double-tap.
+                val scope = rememberCoroutineScope()
+                val pendingToggle = remember { mutableStateOf<Job?>(null) }
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -128,25 +135,18 @@ class StopwatchScreen(sealedActivity: SealedLightActivity) :
                         .pointerInput(Unit) {
                             detectTapGestures(
                                 onTap = {
-                                    val now = SystemClock.elapsedRealtime()
-                                    val lastTapAt = gestureState.longValue and 0xFFFFFFFFL
-                                    val lastToggled = (gestureState.longValue shr 32).toInt()
-                                    if (now - lastTapAt < 300L &&
-                                        viewModel.isRunning.value != (lastToggled == 1)
-                                    ) {
-                                        // second tap of a double: undo the first
-                                        // tap's toggle, then lap
-                                        viewModel.startStop()
-                                        gestureState.longValue = 0L
+                                    val pending = pendingToggle.value
+                                    if (pending?.isActive == true) {
+                                        pending.cancel()
+                                        pendingToggle.value = null
                                         hapticTick()
                                         viewModel.lap()
                                     } else {
-                                        val wasRunning = viewModel.isRunning.value
-                                        gestureState.longValue =
-                                            (if (wasRunning) 1L shl 32 else 0L) or
-                                                (now and 0xFFFFFFFFL)
                                         haptic()
-                                        viewModel.startStop()
+                                        pendingToggle.value = scope.launch {
+                                            delay(200L)
+                                            viewModel.startStop()
+                                        }
                                     }
                                 },
                             )
@@ -164,9 +164,7 @@ class StopwatchScreen(sealedActivity: SealedLightActivity) :
                     elapsed = elapsed,
                     isRunning = isRunning,
                     laps = laps,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8f.gridUnitsAsDp()),
+                    modifier = Modifier.fillMaxWidth(),
                 )
 
                 // ---- controls: RESET left · START/STOP centre · LAP right ----
@@ -210,10 +208,29 @@ private fun LapList(
         if (i == 0) total else total - laps[i - 1]
     }
 
+    val listState = rememberLazyListState()
+    // a new lap always snaps the list back to the newest row at the top
+    LaunchedEffect(laps.size) {
+        if (laps.isNotEmpty()) listState.scrollToItem(0)
+    }
+
+    // viewport = exactly three measured rows, so all three always fit
+    // regardless of device density
+    val style = scaledCopyStyle()
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val rowHeightDp = remember(style) {
+        with(density) {
+            (measurer.measure("0", style).size.height + 20.dp.toPx()).toDp()
+        }
+    }
+    val gridUnitDp = LocalConfiguration.current.screenWidthDp / 27f
+
     LightLazyScrollView(
-        modifier = modifier,
+        modifier = modifier.height(rowHeightDp * 3 + 1.dp),
+        listState = listState,
         scrollBarPosition = LightScrollBarPosition.Inside,
-        uniformItemHeightGridUnits = 2.63f,
+        uniformItemHeightGridUnits = rowHeightDp.value / gridUnitDp,
     ) {
         // the lap in progress, counting — only once a lap has been recorded
         if (isRunning && laps.isNotEmpty()) {

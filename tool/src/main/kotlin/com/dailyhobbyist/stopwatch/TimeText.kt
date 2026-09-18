@@ -34,6 +34,9 @@ internal fun TimeCell(text: String, modifier: Modifier = Modifier) {
     }
 }
 
+@Composable
+internal fun scaledCopyStyle(): TextStyle = scaledTimeStyle(LightThemeTokens.typography.copy)
+
 private @Composable fun scaledTimeStyle(style: TextStyle): TextStyle = style.copy(
     fontSize = style.fontSize.value.designVerticalPxToSp(),
     lineHeight = if (style.lineHeight.isSpecified) {
