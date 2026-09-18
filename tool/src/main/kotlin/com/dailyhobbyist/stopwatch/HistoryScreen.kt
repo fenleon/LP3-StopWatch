@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
@@ -122,15 +123,13 @@ private fun SessionRow(
                 text = formatSessionDate(session.startedAtWall),
                 variant = LightTextVariant.Detail,
             )
-            // the laps line makes way while confirming so CANCEL REMOVE
-            // fit on the time line
-            if (!confirmingDelete) {
-                LightText(
-                    text = formatSessionTime(session.startedAtWall) +
-                        "  ·  " + lapCountLabel(session.laps.size),
-                    variant = LightTextVariant.Fine,
-                )
-            }
+            // while confirming the laps count makes way so CANCEL REMOVE
+            // fit on the time line (the time itself stays)
+            LightText(
+                text = formatSessionTime(session.startedAtWall) +
+                    if (!confirmingDelete) "  ·  " + lapCountLabel(session.laps.size) else "",
+                variant = LightTextVariant.Fine,
+            )
         }
         Spacer(modifier = Modifier.width(12.dp))
         if (confirmingDelete) {
@@ -151,11 +150,18 @@ private fun SessionRow(
         } else {
             TimeCell(text = compactTime(session.totalMs))
             Spacer(modifier = Modifier.width(12.dp))
-            LightIcon(
-                icon = LightIcons.CLOSE,
-                size = 1.5f,
-                modifier = Modifier.lightClickable { confirmingDelete = true },
-            )
+            // centred on the time line only: a bottom-aligned strip the
+            // height of that line, X centred inside it
+            Box(
+                modifier = Modifier.height(1.5f.gridUnitsAsDp()),
+                contentAlignment = Alignment.Center,
+            ) {
+                LightIcon(
+                    icon = LightIcons.CLOSE,
+                    size = 1.5f,
+                    modifier = Modifier.lightClickable { confirmingDelete = true },
+                )
+            }
         }
     }
 }
