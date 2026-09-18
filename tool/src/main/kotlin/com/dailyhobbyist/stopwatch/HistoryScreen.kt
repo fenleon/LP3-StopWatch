@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
@@ -151,9 +152,12 @@ private fun SessionRow(
             TimeCell(text = compactTime(session.totalMs))
             Spacer(modifier = Modifier.width(12.dp))
             // centred on the time line only: a bottom-aligned strip the
-            // height of that line, X centred inside it
+            // height of that line, X centred inside it. The start offset
+            // centres the X between the times column and the scrollbar rail.
             Box(
-                modifier = Modifier.height(1.5f.gridUnitsAsDp()),
+                modifier = Modifier
+                    .offset(x = 0.6f.gridUnitsAsDp())
+                    .height(1.5f.gridUnitsAsDp()),
                 contentAlignment = Alignment.Center,
             ) {
                 LightIcon(

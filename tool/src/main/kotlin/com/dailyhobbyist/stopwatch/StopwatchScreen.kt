@@ -32,6 +32,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
@@ -89,7 +90,11 @@ class StopwatchScreen(sealedActivity: SealedLightActivity) :
                     // (down = start/stop, up = lap). Keys are consumed so
                     // they never adjust the ringer.
                     .onPreviewKeyEvent { event ->
-                        if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                        // Act on key-UP and swallow every key-DOWN (press and
+                        // auto-repeats): holding the rocker must not
+                        // machine-gun start/stop/lap.
+                        if (event.type == KeyEventType.KeyDown) return@onPreviewKeyEvent true
+                        if (event.type != KeyEventType.KeyUp) return@onPreviewKeyEvent false
                         when (event.key) {
                             Key.VolumeDown -> {
                                 haptic()
