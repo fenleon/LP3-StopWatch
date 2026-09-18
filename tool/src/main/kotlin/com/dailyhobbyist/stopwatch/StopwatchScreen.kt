@@ -123,8 +123,10 @@ class StopwatchScreen(sealedActivity: SealedLightActivity) :
                     )
                 }
 
-                // ---- recorded laps ----
+                // ---- laps ----
                 LapList(
+                    elapsed = elapsed,
+                    isRunning = isRunning,
                     laps = laps,
                     modifier = Modifier
                         .weight(1f)
@@ -163,6 +165,8 @@ class StopwatchScreen(sealedActivity: SealedLightActivity) :
 
 @Composable
 private fun LapList(
+    elapsed: Long,
+    isRunning: Boolean,
     laps: List<Long>,
     modifier: Modifier = Modifier,
 ) {
@@ -175,13 +179,24 @@ private fun LapList(
         modifier = modifier,
         uniformItemHeightGridUnits = 3.8f,
     ) {
+        // the lap in progress, counting — only once a lap has been recorded
+        if (isRunning && laps.isNotEmpty()) {
+            item(key = "live") {
+                LapRow(
+                    label = "Lap ${laps.size + 1}",
+                    split = elapsed - (laps.lastOrNull() ?: 0L),
+                    total = elapsed,
+                    live = true,
+                )
+            }
+        }
         // recorded laps, newest first
         items(
             items = laps.indices.reversed().toList(),
             key = { it },
         ) { i ->
             LapRow(
-                label = "LAP ${i + 1}",
+                label = "Lap ${i + 1}",
                 split = splits[i],
                 total = laps[i],
             )
@@ -194,6 +209,7 @@ private fun LapRow(
     label: String,
     split: Long,
     total: Long,
+    live: Boolean = false,
 ) {
     Row(
         modifier = Modifier
@@ -215,10 +231,10 @@ private fun LapRow(
             maxLines = 1,
         )
         Spacer(modifier = Modifier.width(14.dp))
-        // running total at that lap
+        // running total at that lap — same size as the split on the live lap
         LightText(
             text = formatTime(total),
-            variant = LightTextVariant.Detail,
+            variant = if (live) LightTextVariant.Copy else LightTextVariant.Detail,
             maxLines = 1,
         )
     }

@@ -104,7 +104,7 @@ class SessionDetailScreen(
                     ) {
                         items(items = laps.indices.toList(), key = { it }) { i ->
                             LapDetailRow(
-                                label = "LAP ${i + 1}",
+                                label = "Lap ${i + 1}",
                                 split = splits[i],
                                 total = laps[i],
                             )

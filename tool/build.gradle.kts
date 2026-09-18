@@ -12,7 +12,7 @@ android {
 
     signingConfigs {
         create("lightsdkDev") {
-            storeFile = file("../sdk/keys/lightsdk-dev.jks")
+            storeFile = file("../../light-sdk/sdk/keys/lightsdk-dev.jks")
             storePassword = "android"
             keyAlias = "lightsdk-dev"
             keyPassword = "android"
@@ -54,8 +54,14 @@ kotlin {
     }
 }
 
+// zxing-cpp (the SDK's camera QR/barcode decoder) requires compileSdk 37; the
+// stopwatch never scans codes — drop the group (chats/tasks pattern).
+configurations.configureEach {
+    exclude(group = "com.github.markusfisch")
+}
+
 dependencies {
-    implementation(project(":sdk:client"))
+    implementation(libs.sdk.client)
     testImplementation(libs.kotlin.test)
     ksp(libs.androidx.room.compiler)
 }
