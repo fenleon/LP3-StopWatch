@@ -26,4 +26,11 @@ class HistoryViewModel(
             sessions.value = StopwatchHistory.loadSorted(dataStore)
         }
     }
+
+    fun delete(session: StopwatchSession) {
+        viewModelScope.launch {
+            StopwatchHistory.delete(dataStore, session.id)
+            refresh()
+        }
+    }
 }

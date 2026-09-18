@@ -1,8 +1,8 @@
 [tool]
 id = "com.dailyhobbyist.stopwatch"
 label = "Stopwatch"
-versionCode = 4
-versionName = "4.0"
+versionCode = 5
+versionName = "5.0"
 permissions = []
 # change to com.thelightphone.sdk.emulator if you run in the SDK emulator
 serverPackage = "com.lightos"

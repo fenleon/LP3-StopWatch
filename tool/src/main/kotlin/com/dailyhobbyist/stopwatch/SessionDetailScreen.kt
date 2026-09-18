@@ -17,12 +17,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.thelightphone.sdk.LightScreen
 import com.thelightphone.sdk.SealedLightActivity
 import com.thelightphone.sdk.ui.LightBarButton
 import com.thelightphone.sdk.ui.LightBottomBar
+import com.thelightphone.sdk.ui.LightIcons
 import com.thelightphone.sdk.ui.LightText
 import com.thelightphone.sdk.ui.LightTextVariant
 import com.thelightphone.sdk.ui.LightTheme
@@ -53,8 +53,6 @@ class SessionDetailScreen(
         val splits = laps.mapIndexed { i, total ->
             if (i == 0) total else total - laps[i - 1]
         }
-        val bestIndex = if (splits.size >= 2) splits.indexOf(splits.min()) else -1
-        val slowestIndex = if (splits.size >= 2) splits.indexOf(splits.max()) else -1
 
         LightTheme(colors = themeColors) {
             Column(
@@ -63,7 +61,7 @@ class SessionDetailScreen(
                     .background(LightThemeTokens.colors.background),
             ) {
                 LightTopBar(
-                    leftButton = LightBarButton.Text("BACK") { goBack() },
+                    leftButton = LightBarButton.LightIcon(LightIcons.BACK, onClick = { goBack() }),
                     center = LightTopBarCenter.TwoLineDetail(
                         line1 = formatSessionDate(session.startedAtWall),
                         line2 = formatSessionTime(session.startedAtWall),
@@ -107,11 +105,6 @@ class SessionDetailScreen(
                         items(items = laps.indices.toList(), key = { it }) { i ->
                             LapDetailRow(
                                 label = "LAP ${i + 1}",
-                                tag = when (i) {
-                                    bestIndex -> "BEST"
-                                    slowestIndex -> "SLOWEST"
-                                    else -> null
-                                },
                                 split = splits[i],
                                 total = laps[i],
                             )
@@ -140,7 +133,6 @@ class SessionDetailScreen(
 @Composable
 private fun LapDetailRow(
     label: String,
-    tag: String?,
     split: Long,
     total: Long,
 ) {
@@ -150,21 +142,12 @@ private fun LapDetailRow(
             .padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
+        LightText(
+            text = label,
+            variant = LightTextVariant.Copy,
+            maxLines = 1,
             modifier = Modifier.weight(1f),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            LightText(text = label, variant = LightTextVariant.Copy, maxLines = 1)
-            if (tag != null) {
-                Spacer(modifier = Modifier.width(8.dp))
-                LightText(
-                    text = tag,
-                    variant = LightTextVariant.Copy,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
+        )
         Spacer(modifier = Modifier.width(12.dp))
         LightText(text = formatTime(split), variant = LightTextVariant.Copy, maxLines = 1)
         Spacer(modifier = Modifier.width(14.dp))

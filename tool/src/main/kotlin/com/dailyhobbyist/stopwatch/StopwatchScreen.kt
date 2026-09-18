@@ -1,6 +1,7 @@
 package com.dailyhobbyist.stopwatch
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,18 +10,27 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.thelightphone.sdk.ui.designVerticalPxToSp
 import androidx.compose.ui.unit.isSpecified
@@ -30,6 +40,7 @@ import com.thelightphone.sdk.LightScreen
 import com.thelightphone.sdk.SealedLightActivity
 import com.thelightphone.sdk.ui.LightBarButton
 import com.thelightphone.sdk.ui.LightBottomBar
+import com.thelightphone.sdk.ui.LightLazyScrollView
 import com.thelightphone.sdk.ui.LightText
 import com.thelightphone.sdk.ui.LightTextVariant
 import com.thelightphone.sdk.ui.LightTheme
@@ -56,36 +67,64 @@ class StopwatchScreen(sealedActivity: SealedLightActivity) :
         val elapsed by viewModel.elapsedMs.collectAsState()
         val laps by viewModel.laps.collectAsState()
 
+        val haptics = LocalHapticFeedback.current
+        val focusRequester = remember { FocusRequester() }
+        fun haptic() {
+            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+        }
+
         LightTheme(colors = themeColors) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(LightThemeTokens.colors.background),
+                    .background(LightThemeTokens.colors.background)
+                    .focusRequester(focusRequester)
+                    .focusable()
+                    // External controls: volume rocker drives the watch
+                    // (down = start/stop, up = lap). Keys are consumed so
+                    // they never adjust the ringer.
+                    .onPreviewKeyEvent { event ->
+                        if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                        when (event.key) {
+                            Key.VolumeDown -> {
+                                haptic()
+                                viewModel.startStop()
+                                true
+                            }
+                            Key.VolumeUp -> {
+                                if (isRunning) {
+                                    haptic()
+                                    viewModel.lap()
+                                }
+                                true
+                            }
+                            else -> false
+                        }
+                    },
             ) {
+                LaunchedEffect(Unit) { focusRequester.requestFocus() }
+
                 LightTopBar(
-                    center = LightTopBarCenter.Text("STOPWATCH"),
                     rightButton = LightBarButton.Text("HISTORY") {
                         navigateTo(screenFactory = { sealed -> HistoryScreen(sealed) })
                     },
                 )
 
-                // ---- big time display ----
+                // ---- big time display, centred like the LightOS Timer ----
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 24.dp, bottom = 20.dp),
+                        .weight(1.4f)
+                        .fillMaxWidth(),
                     contentAlignment = Alignment.Center,
                 ) {
                     FixedWidthTime(
                         text = formatTime(elapsed),
-                        style = LightThemeTokens.typography.subtitle,
+                        style = LightThemeTokens.typography.title,
                     )
                 }
 
-                // ---- laps ----
+                // ---- recorded laps ----
                 LapList(
-                    elapsed = elapsed,
-                    isRunning = isRunning,
                     laps = laps,
                     modifier = Modifier
                         .weight(1f)
@@ -93,24 +132,22 @@ class StopwatchScreen(sealedActivity: SealedLightActivity) :
                         .padding(horizontal = 28.dp),
                 )
 
-                // ---- controls ----
-                // Three slots so the primary action always sits dead center:
-                // your thumb never moves between START and LAP.
+                // ---- controls: RESET left · START/STOP centre · LAP right ----
                 val hasTime = elapsed > 0L || laps.isNotEmpty()
                 val items: List<LightBarButton?> = when {
                     isRunning -> listOf(
-                        null,
-                        LightBarButton.Text("LAP") { viewModel.lap() },
-                        LightBarButton.Text("STOP") { viewModel.startStop() },
+                        LightBarButton.Text("RESET") { haptic(); viewModel.reset() },
+                        LightBarButton.Text("STOP") { haptic(); viewModel.startStop() },
+                        LightBarButton.Text("LAP") { haptic(); viewModel.lap() },
                     )
                     hasTime -> listOf(
+                        LightBarButton.Text("RESET") { haptic(); viewModel.reset() },
+                        LightBarButton.Text("START") { haptic(); viewModel.startStop() },
                         null,
-                        LightBarButton.Text("START") { viewModel.startStop() },
-                        LightBarButton.Text("RESET") { viewModel.reset() },
                     )
                     else -> listOf(
                         null,
-                        LightBarButton.Text("START") { viewModel.startStop() },
+                        LightBarButton.Text("START") { haptic(); viewModel.startStop() },
                         null,
                     )
                 }
@@ -126,8 +163,6 @@ class StopwatchScreen(sealedActivity: SealedLightActivity) :
 
 @Composable
 private fun LapList(
-    elapsed: Long,
-    isRunning: Boolean,
     laps: List<Long>,
     modifier: Modifier = Modifier,
 ) {
@@ -135,24 +170,11 @@ private fun LapList(
     val splits = laps.mapIndexed { i, total ->
         if (i == 0) total else total - laps[i - 1]
     }
-    val bestIndex = if (splits.size >= 2) splits.indexOf(splits.min()) else -1
-    val slowestIndex = if (splits.size >= 2) splits.indexOf(splits.max()) else -1
 
-    val showLiveLap = isRunning || (laps.isNotEmpty() && elapsed > laps.last())
-    val liveSplit = elapsed - (laps.lastOrNull() ?: 0L)
-
-    LazyColumn(modifier = modifier) {
-        // live (in-progress) lap at the top
-        if (showLiveLap && (laps.isNotEmpty() || elapsed > 0L)) {
-            item(key = "live") {
-                LapRow(
-                    label = "LAP ${laps.size + 1}",
-                    tag = null,
-                    split = liveSplit,
-                    total = elapsed,
-                )
-            }
-        }
+    LightLazyScrollView(
+        modifier = modifier,
+        uniformItemHeightGridUnits = 3.8f,
+    ) {
         // recorded laps, newest first
         items(
             items = laps.indices.reversed().toList(),
@@ -160,11 +182,6 @@ private fun LapList(
         ) { i ->
             LapRow(
                 label = "LAP ${i + 1}",
-                tag = when (i) {
-                    bestIndex -> "BEST"
-                    slowestIndex -> "SLOWEST"
-                    else -> null
-                },
                 split = splits[i],
                 total = laps[i],
             )
@@ -175,7 +192,6 @@ private fun LapList(
 @Composable
 private fun LapRow(
     label: String,
-    tag: String?,
     split: Long,
     total: Long,
 ) {
@@ -185,25 +201,12 @@ private fun LapRow(
             .padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
+        LightText(
+            text = label,
+            variant = LightTextVariant.Copy,
+            maxLines = 1,
             modifier = Modifier.weight(1f),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            LightText(
-                text = label,
-                variant = LightTextVariant.Copy,
-                maxLines = 1,
-            )
-            if (tag != null) {
-                Spacer(modifier = Modifier.width(8.dp))
-                LightText(
-                    text = tag,
-                    variant = LightTextVariant.Copy,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
+        )
         Spacer(modifier = Modifier.width(12.dp))
         // lap split (the headline number for the row)
         LightText(

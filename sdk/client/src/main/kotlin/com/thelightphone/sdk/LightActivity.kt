@@ -40,7 +40,6 @@ class LightActivity internal constructor() : ComponentActivity() {
     private val backStack = mutableListOf<BackStackEntry<*>>()
     private val currentScreen = mutableStateOf<BackStackEntry<*>?>(null)
     private var contentReady = false
-    private val createdAt = android.os.SystemClock.elapsedRealtime()
 
     internal fun <T> navigateTo(screen: SimpleLightScreen<T>, resultCallback: ((T) -> Unit)? = null) {
         currentScreen.value?.screen?.notifyWillHide()
@@ -67,9 +66,7 @@ class LightActivity internal constructor() : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen().setKeepOnScreenCondition {
-            !contentReady || android.os.SystemClock.elapsedRealtime() - createdAt < 1000
-        }
+        installSplashScreen().setKeepOnScreenCondition { !contentReady }
         super.onCreate(savedInstanceState)
 
         WindowCompat.setDecorFitsSystemWindows(window, false)

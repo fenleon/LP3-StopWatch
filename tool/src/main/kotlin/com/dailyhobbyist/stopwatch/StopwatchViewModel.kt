@@ -103,8 +103,13 @@ class StopwatchViewModel(
     }
 
     fun reset() {
-        if (isRunning.value) return
         stopTicker()
+
+        // Bank any running time so this run is what gets saved.
+        if (isRunning.value) {
+            accumulated += now() - startedAt
+            isRunning.value = false
+        }
 
         // Save this run to history (if it actually recorded any time).
         val total = accumulated
