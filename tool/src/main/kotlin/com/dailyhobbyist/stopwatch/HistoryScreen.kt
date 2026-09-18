@@ -28,6 +28,7 @@ import com.thelightphone.sdk.ui.lightClickable
 import com.thelightphone.sdk.ui.LightIcons
 import com.thelightphone.sdk.ui.LightIcon
 import com.thelightphone.sdk.ui.LightLazyScrollView
+import com.thelightphone.sdk.ui.LightScrollBarPosition
 import com.thelightphone.sdk.ui.LightText
 import com.thelightphone.sdk.ui.LightTextVariant
 import com.thelightphone.sdk.ui.LightTheme
@@ -35,6 +36,7 @@ import com.thelightphone.sdk.ui.LightThemeController
 import com.thelightphone.sdk.ui.LightThemeTokens
 import com.thelightphone.sdk.ui.LightTopBar
 import com.thelightphone.sdk.ui.LightTopBarCenter
+import com.thelightphone.sdk.ui.gridUnitsAsDp
 
 class HistoryScreen(sealedActivity: SealedLightActivity) :
     LightScreen<Unit, HistoryViewModel>(sealedActivity) {
@@ -77,10 +79,9 @@ class HistoryScreen(sealedActivity: SealedLightActivity) :
                     }
                 } else {
                     LightLazyScrollView(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 28.dp),
-                        uniformItemHeightGridUnits = 5.1f,
+                        modifier = Modifier.fillMaxWidth(),
+                        scrollBarPosition = LightScrollBarPosition.Inside,
+                        uniformItemHeightGridUnits = 3.83f,
                     ) {
                         items(items = sessions, key = { it.id }) { session ->
                             SessionRow(
@@ -112,7 +113,7 @@ private fun SessionRow(
         modifier = Modifier
             .fillMaxWidth()
             .lightClickable { onClick() }
-            .padding(vertical = 14.dp),
+            .padding(start = 28.dp, end = 3f.gridUnitsAsDp(), top = 14.dp, bottom = 14.dp),
         verticalAlignment = Alignment.Bottom,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
@@ -144,10 +145,7 @@ private fun SessionRow(
                 },
             )
         } else {
-            LightText(
-                text = formatTime(session.totalMs),
-                variant = LightTextVariant.Fine,
-            )
+            TimeCell(text = compactTime(session.totalMs))
             Spacer(modifier = Modifier.width(12.dp))
             LightIcon(
                 icon = LightIcons.CLOSE,

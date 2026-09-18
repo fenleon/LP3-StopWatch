@@ -1,6 +1,7 @@
 package com.dailyhobbyist.stopwatch
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListScope
@@ -26,14 +28,10 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
-import com.thelightphone.sdk.ui.designVerticalPxToSp
-import androidx.compose.ui.unit.isSpecified
 import androidx.compose.material3.Text
 import com.thelightphone.sdk.InitialScreen
 import com.thelightphone.sdk.LightScreen
@@ -41,6 +39,7 @@ import com.thelightphone.sdk.SealedLightActivity
 import com.thelightphone.sdk.ui.LightBarButton
 import com.thelightphone.sdk.ui.LightBottomBar
 import com.thelightphone.sdk.ui.LightLazyScrollView
+import com.thelightphone.sdk.ui.LightScrollBarPosition
 import com.thelightphone.sdk.ui.LightText
 import com.thelightphone.sdk.ui.LightTextVariant
 import com.thelightphone.sdk.ui.LightTheme
@@ -48,6 +47,7 @@ import com.thelightphone.sdk.ui.LightThemeController
 import com.thelightphone.sdk.ui.LightThemeTokens
 import com.thelightphone.sdk.ui.LightTopBar
 import com.thelightphone.sdk.ui.LightTopBarCenter
+import com.thelightphone.sdk.ui.gridUnitsAsDp
 
 @InitialScreen
 class StopwatchScreen(sealedActivity: SealedLightActivity) :
@@ -111,10 +111,23 @@ class StopwatchScreen(sealedActivity: SealedLightActivity) :
                 )
 
                 // ---- big time display, centred like the LightOS Timer ----
+                // Tap = start/stop, double-tap = lap.
                 Box(
                     modifier = Modifier
-                        .weight(1.4f)
-                        .fillMaxWidth(),
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onTap = {
+                                    haptic()
+                                    viewModel.startStop()
+                                },
+                                onDoubleTap = {
+                                    haptic()
+                                    viewModel.lap()
+                                },
+                            )
+                        },
                     contentAlignment = Alignment.Center,
                 ) {
                     FixedWidthTime(
@@ -123,15 +136,14 @@ class StopwatchScreen(sealedActivity: SealedLightActivity) :
                     )
                 }
 
-                // ---- laps ----
+                // ---- laps: exactly three rows visible, scrollbar only past that ----
                 LapList(
                     elapsed = elapsed,
                     isRunning = isRunning,
                     laps = laps,
                     modifier = Modifier
-                        .weight(1f)
                         .fillMaxWidth()
-                        .padding(horizontal = 28.dp),
+                        .height(8f.gridUnitsAsDp()),
                 )
 
                 // ---- controls: RESET left · START/STOP centre · LAP right ----
@@ -177,7 +189,8 @@ private fun LapList(
 
     LightLazyScrollView(
         modifier = modifier,
-        uniformItemHeightGridUnits = 3.8f,
+        scrollBarPosition = LightScrollBarPosition.Inside,
+        uniformItemHeightGridUnits = 2.63f,
     ) {
         // the lap in progress, counting — only once a lap has been recorded
         if (isRunning && laps.isNotEmpty()) {
@@ -186,7 +199,6 @@ private fun LapList(
                     label = "Lap ${laps.size + 1}",
                     split = elapsed - (laps.lastOrNull() ?: 0L),
                     total = elapsed,
-                    live = true,
                 )
             }
         }
@@ -209,12 +221,13 @@ private fun LapRow(
     label: String,
     split: Long,
     total: Long,
-    live: Boolean = false,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 10.dp),
+            // start inset for the grid margin; end inset keeps rows clear of
+            // the right-edge scrollbar
+            .padding(start = 28.dp, end = 3f.gridUnitsAsDp(), top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         LightText(
@@ -224,76 +237,10 @@ private fun LapRow(
             modifier = Modifier.weight(1f),
         )
         Spacer(modifier = Modifier.width(12.dp))
-        // lap split (the headline number for the row)
-        LightText(
-            text = formatTime(split),
-            variant = LightTextVariant.Copy,
-            maxLines = 1,
-        )
+        // lap split and running total — same size, each anchored in its own column
+        TimeCell(text = compactTime(split))
         Spacer(modifier = Modifier.width(14.dp))
-        // running total at that lap — same size as the split on the live lap
-        LightText(
-            text = formatTime(total),
-            variant = if (live) LightTextVariant.Copy else LightTextVariant.Detail,
-            maxLines = 1,
-        )
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Fixed-width time text — every digit sits in an equal slot so the display
-// doesn't shift around as numbers change (Akkurat digits vary in width).
-// ---------------------------------------------------------------------------
-
-@Composable
-private fun FixedWidthTime(
-    text: String,
-    style: TextStyle,
-) {
-    // Scale the token style the same way LightText does (design px → sp),
-    // then measure and render with that one style so slots line up exactly.
-    val scaled = style.copy(
-        fontSize = style.fontSize.value.designVerticalPxToSp(),
-        lineHeight = if (style.lineHeight.isSpecified) {
-            style.lineHeight.value.designVerticalPxToSp()
-        } else style.lineHeight,
-        letterSpacing = if (style.letterSpacing.isSpecified) {
-            style.letterSpacing.value.designVerticalPxToSp()
-        } else style.letterSpacing,
-        color = LightThemeTokens.colors.content,
-    )
-
-    val measurer = rememberTextMeasurer()
-    val density = LocalDensity.current
-
-    val digitWidth = remember(scaled) {
-        val w = (0..9).maxOf { d ->
-            measurer.measure(d.toString(), scaled).size.width
-        }
-        with(density) { w.toDp() }
-    }
-    val sepWidth = remember(scaled) {
-        val w = maxOf(
-            measurer.measure(":", scaled).size.width,
-            measurer.measure(".", scaled).size.width,
-        )
-        with(density) { w.toDp() }
-    }
-
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        text.forEach { ch ->
-            val slot = if (ch.isDigit()) digitWidth else sepWidth
-            Box(
-                modifier = Modifier.width(slot),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = ch.toString(),
-                    style = scaled,
-                    maxLines = 1,
-                )
-            }
-        }
+        TimeCell(text = compactTime(total))
     }
 }
 

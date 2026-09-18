@@ -18,3 +18,20 @@ fun formatSessionTime(wallMs: Long): String {
 
 fun lapCountLabel(count: Int): String =
     if (count == 1) "1 lap" else "$count laps"
+
+/**
+ * Compact row format: leading zero units are dropped —
+ * 00:01.66 → "1.66", 01:15.16 → "1:15.16", 1:02:15.16 stays as-is.
+ */
+internal fun compactTime(ms: Long): String {
+    val clamped = if (ms < 0) 0L else ms
+    val h = clamped / 3_600_000
+    val m = (clamped % 3_600_000) / 60_000
+    val s = (clamped % 60_000) / 1_000
+    val c = (clamped % 1_000) / 10
+    return when {
+        h > 0 -> "%d:%02d:%02d.%02d".format(h, m, s, c)
+        m > 0 -> "%d:%02d.%02d".format(m, s, c)
+        else -> "%d.%02d".format(s, c)
+    }
+}

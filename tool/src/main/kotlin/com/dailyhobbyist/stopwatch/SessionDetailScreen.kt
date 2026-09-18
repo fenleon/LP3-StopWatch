@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -22,6 +21,9 @@ import com.thelightphone.sdk.LightScreen
 import com.thelightphone.sdk.SealedLightActivity
 import com.thelightphone.sdk.ui.LightBarButton
 import com.thelightphone.sdk.ui.LightBottomBar
+import com.thelightphone.sdk.ui.LightLazyScrollView
+import com.thelightphone.sdk.ui.LightScrollBarPosition
+import com.thelightphone.sdk.ui.gridUnitsAsDp
 import com.thelightphone.sdk.ui.LightIcons
 import com.thelightphone.sdk.ui.LightText
 import com.thelightphone.sdk.ui.LightTextVariant
@@ -46,7 +48,6 @@ class SessionDetailScreen(
     @Composable
     override fun Content() {
         val themeColors by LightThemeController.colors.collectAsState()
-        val confirmingDelete by viewModel.confirmingDelete.collectAsState()
 
         // splits[i] = duration of lap i within the run
         val laps = session.laps
@@ -96,11 +97,12 @@ class SessionDetailScreen(
                         )
                     }
                 } else {
-                    LazyColumn(
+                    LightLazyScrollView(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f)
-                            .padding(horizontal = 28.dp),
+                            .weight(1f),
+                        scrollBarPosition = LightScrollBarPosition.Inside,
+                        uniformItemHeightGridUnits = 2.63f,
                     ) {
                         items(items = laps.indices.toList(), key = { it }) { i ->
                             LapDetailRow(
@@ -112,19 +114,14 @@ class SessionDetailScreen(
                     }
                 }
 
-                val items = if (confirmingDelete) {
-                    listOf(
-                        LightBarButton.Text("CANCEL") { viewModel.cancelDelete() },
-                        LightBarButton.Text("CONFIRM DELETE") {
+                // delete is immediate — confirmation lives on the history list
+                LightBottomBar(
+                    items = listOf(
+                        LightBarButton.Text("DELETE") {
                             viewModel.confirmDelete { goBack() }
                         },
-                    )
-                } else {
-                    listOf(
-                        LightBarButton.Text("DELETE") { viewModel.askDelete() },
-                    )
-                }
-                LightBottomBar(items = items)
+                    ),
+                )
             }
         }
     }
@@ -139,7 +136,7 @@ private fun LapDetailRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 10.dp),
+            .padding(start = 28.dp, end = 3f.gridUnitsAsDp(), top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         LightText(
@@ -149,8 +146,8 @@ private fun LapDetailRow(
             modifier = Modifier.weight(1f),
         )
         Spacer(modifier = Modifier.width(12.dp))
-        LightText(text = formatTime(split), variant = LightTextVariant.Copy, maxLines = 1)
+        TimeCell(text = compactTime(split))
         Spacer(modifier = Modifier.width(14.dp))
-        LightText(text = formatTime(total), variant = LightTextVariant.Detail, maxLines = 1)
+        TimeCell(text = compactTime(total))
     }
 }
