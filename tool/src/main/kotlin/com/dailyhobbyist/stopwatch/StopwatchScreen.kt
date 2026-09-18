@@ -37,9 +37,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Text
 import com.thelightphone.sdk.InitialScreen
@@ -49,6 +47,8 @@ import com.thelightphone.sdk.ui.LightBarButton
 import com.thelightphone.sdk.ui.LightBottomBar
 import com.thelightphone.sdk.ui.LightLazyScrollView
 import com.thelightphone.sdk.ui.LightScrollBarPosition
+import com.thelightphone.sdk.ui.rememberLightHapticClick
+import com.thelightphone.sdk.ui.rememberLightHapticTick
 import com.thelightphone.sdk.ui.LightText
 import com.thelightphone.sdk.ui.LightTextVariant
 import com.thelightphone.sdk.ui.LightTheme
@@ -76,14 +76,9 @@ class StopwatchScreen(sealedActivity: SealedLightActivity) :
         val elapsed by viewModel.elapsedMs.collectAsState()
         val laps by viewModel.laps.collectAsState()
 
-        val haptics = LocalHapticFeedback.current
         val focusRequester = remember { FocusRequester() }
-        fun haptic() {
-            haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
-        }
-        fun hapticTick() {
-            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-        }
+        val haptic = rememberLightHapticClick()
+        val hapticTick = rememberLightHapticTick()
 
         LightTheme(colors = themeColors) {
             Column(
@@ -232,8 +227,8 @@ private fun LapList(
         scrollBarPosition = LightScrollBarPosition.Inside,
         uniformItemHeightGridUnits = rowHeightDp.value / gridUnitDp,
     ) {
-        // the lap in progress, counting — only once a lap has been recorded
-        if (isRunning && laps.isNotEmpty()) {
+        // the lap in progress — freezes while stopped, counting while running
+        if (laps.isNotEmpty()) {
             item(key = "live") {
                 LapRow(
                     label = "Lap ${laps.size + 1}",
