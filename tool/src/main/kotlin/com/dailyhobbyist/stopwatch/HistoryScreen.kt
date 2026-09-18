@@ -54,6 +54,8 @@ class HistoryScreen(sealedActivity: SealedLightActivity) :
     override fun Content() {
         val themeColors by LightThemeController.colors.collectAsState()
         val sessions by viewModel.sessions.collectAsState()
+        // one X confirm active at a time, across the whole list
+        var confirmingId by remember { mutableStateOf<Long?>(null) }
 
         LightTheme(colors = themeColors) {
             Column(
@@ -66,7 +68,10 @@ class HistoryScreen(sealedActivity: SealedLightActivity) :
                     center = LightTopBarCenter.Text("History"),
                 )
 
-                if (sessions.isEmpty()) {
+                if (sessions == null) {
+                    // first load — keep the previous frame instead of
+                    // flashing the empty state
+                } else if (sessions!!.isEmpty()) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -85,10 +90,13 @@ class HistoryScreen(sealedActivity: SealedLightActivity) :
                         scrollBarPosition = LightScrollBarPosition.Inside,
                         uniformItemHeightGridUnits = 3.83f,
                     ) {
-                        items(items = sessions, key = { it.id }) { session ->
+                        items(items = sessions!!, key = { it.id }) { session ->
                             SessionRow(
                                 session = session,
+                                confirming = confirmingId == session.id,
+                                onConfirmChange = { confirmingId = if (it) session.id else null },
                                 onClick = {
+                                    confirmingId = null
                                     navigateTo(screenFactory = { sealed ->
                                         SessionDetailScreen(sealed, session)
                                     })
@@ -106,10 +114,12 @@ class HistoryScreen(sealedActivity: SealedLightActivity) :
 @Composable
 private fun SessionRow(
     session: StopwatchSession,
+    confirming: Boolean,
+    onConfirmChange: (Boolean) -> Unit,
     onClick: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    var confirmingDelete by remember { mutableStateOf(false) }
+    val confirmingDelete = confirming
 
     Row(
         modifier = Modifier
@@ -138,14 +148,14 @@ private fun SessionRow(
             LightText(
                 text = "CANCEL",
                 variant = LightTextVariant.Fine,
-                modifier = Modifier.lightClickable { confirmingDelete = false },
+                modifier = Modifier.lightClickable { onConfirmChange(false) },
             )
             Spacer(modifier = Modifier.width(12.dp))
             LightText(
                 text = "REMOVE",
                 variant = LightTextVariant.Fine,
                 modifier = Modifier.lightClickable {
-                    confirmingDelete = false
+                    onConfirmChange(false)
                     onDelete()
                 },
             )
@@ -164,7 +174,7 @@ private fun SessionRow(
                 LightIcon(
                     icon = LightIcons.CLOSE,
                     size = 1.5f,
-                    modifier = Modifier.lightClickable { confirmingDelete = true },
+                    modifier = Modifier.lightClickable { onConfirmChange(true) },
                 )
             }
         }

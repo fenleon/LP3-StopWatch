@@ -12,7 +12,8 @@ class HistoryViewModel(
     private val dataStore: DataStore<Preferences>,
 ) : LightViewModel<Unit>() {
 
-    val sessions = MutableStateFlow<List<StopwatchSession>>(emptyList())
+    /** null until the first load — keeps the UI from flashing empty. */
+    val sessions = MutableStateFlow<List<StopwatchSession>?>(null)
 
     override fun onScreenShow(screen: SimpleLightScreen<Unit>) {
         super.onScreenShow(screen)
