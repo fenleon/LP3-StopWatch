@@ -68,9 +68,9 @@ class SessionDetailScreen(
             ) {
                 LightTopBar(
                     leftButton = LightBarButton.LightIcon(LightIcons.BACK, onClick = { goBack() }),
-                    center = LightTopBarCenter.TwoLineDetail(
-                        line1 = formatSessionDate(session.startedAtWall),
-                        line2 = formatSessionTime(session.startedAtWall),
+                    center = LightTopBarCenter.Text(
+                        formatSessionDate(session.startedAtWall) +
+                            " " + formatSessionTime(session.startedAtWall),
                     ),
                 )
 
