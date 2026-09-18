@@ -35,9 +35,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
@@ -50,7 +48,6 @@ import com.thelightphone.sdk.ui.LightBottomBar
 import com.thelightphone.sdk.ui.LightLazyScrollView
 import com.thelightphone.sdk.ui.LightScrollBarPosition
 import com.thelightphone.sdk.ui.rememberLightHapticClick
-import com.thelightphone.sdk.ui.rememberLightHapticTick
 import com.thelightphone.sdk.ui.LightText
 import com.thelightphone.sdk.ui.LightTextVariant
 import com.thelightphone.sdk.ui.LightTheme
@@ -79,13 +76,7 @@ class StopwatchScreen(sealedActivity: SealedLightActivity) :
         val laps by viewModel.laps.collectAsState()
 
         val focusRequester = remember { FocusRequester() }
-        val hapticClick = rememberLightHapticClick()
-        val hapticTick = rememberLightHapticTick()
-        val composeHaptics = LocalHapticFeedback.current
-        fun hapticStrong() {
-            // the heavy buzz the LP3 only produces via this constant
-            composeHaptics.performHapticFeedback(HapticFeedbackType.LongPress)
-        }
+        val haptic = rememberLightHapticClick()
 
         LightTheme(colors = themeColors) {
             Column(
@@ -101,15 +92,14 @@ class StopwatchScreen(sealedActivity: SealedLightActivity) :
                         if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                         when (event.key) {
                             Key.VolumeDown -> {
-                                hapticStrong()
+                                haptic()
                                 viewModel.startStop()
                                 true
                             }
                             Key.VolumeUp -> {
-                                if (isRunning) {
-                                    hapticTick()
-                                    viewModel.lap()
-                                }
+                                // running: lap; stopped: reset
+                                haptic()
+                                if (isRunning) viewModel.lap() else viewModel.reset()
                                 true
                             }
                             else -> false
@@ -142,14 +132,14 @@ class StopwatchScreen(sealedActivity: SealedLightActivity) :
                                         // second tap of a double: light tick + lap
                                         pending.cancel()
                                         pendingToggle.value = null
-                                        hapticTick()
+                                        haptic()
                                         viewModel.lap()
                                     } else {
                                         // every tap buzzes immediately (chats'
                                         // double-tap feel); the toggle itself
                                         // waits on the fuse so a double-tap
                                         // never shows a paused frame
-                                        hapticStrong()
+                                        haptic()
                                         pendingToggle.value = scope.launch {
                                             delay(200L)
                                             viewModel.startStop()
@@ -178,18 +168,18 @@ class StopwatchScreen(sealedActivity: SealedLightActivity) :
                 val hasTime = elapsed > 0L || laps.isNotEmpty()
                 val items: List<LightBarButton?> = when {
                     isRunning -> listOf(
-                        LightBarButton.Text("RESET") { hapticClick(); viewModel.reset() },
-                        LightBarButton.Text("STOP") { hapticStrong(); viewModel.startStop() },
-                        LightBarButton.Text("LAP") { hapticTick(); viewModel.lap() },
+                        LightBarButton.Text("RESET") { haptic(); viewModel.reset() },
+                        LightBarButton.Text("STOP") { haptic(); viewModel.startStop() },
+                        LightBarButton.Text("LAP") { haptic(); viewModel.lap() },
                     )
                     hasTime -> listOf(
-                        LightBarButton.Text("RESET") { hapticClick(); viewModel.reset() },
-                        LightBarButton.Text("START") { hapticStrong(); viewModel.startStop() },
+                        LightBarButton.Text("RESET") { haptic(); viewModel.reset() },
+                        LightBarButton.Text("START") { haptic(); viewModel.startStop() },
                         null,
                     )
                     else -> listOf(
                         null,
-                        LightBarButton.Text("START") { hapticStrong(); viewModel.startStop() },
+                        LightBarButton.Text("START") { haptic(); viewModel.startStop() },
                         null,
                     )
                 }
