@@ -4,10 +4,13 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/** e.g. "Mon, Jul 8" */
+/** e.g. "Mon, Jul 8" — the year appears only when it isn't the current one. */
 fun formatSessionDate(wallMs: Long): String {
-    val fmt = SimpleDateFormat("EEE, MMM d", Locale.getDefault())
-    return fmt.format(Date(wallMs))
+    val cal = java.util.Calendar.getInstance()
+    val nowYear = cal.get(java.util.Calendar.YEAR)
+    cal.timeInMillis = wallMs
+    val pattern = if (cal.get(java.util.Calendar.YEAR) == nowYear) "EEE, MMM d" else "EEE, MMM d yyyy"
+    return SimpleDateFormat(pattern, Locale.getDefault()).format(Date(wallMs))
 }
 
 /** e.g. "3:47 PM" */
