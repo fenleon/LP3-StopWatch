@@ -72,8 +72,8 @@ class HistoryScreen(sealedActivity: SealedLightActivity) :
                         contentAlignment = Alignment.Center,
                     ) {
                         LightText(
-                            text = "No saved runs yet.",
-                            variant = LightTextVariant.Detail,
+                            text = "No sessions saved yet",
+                            variant = LightTextVariant.Subheading,
                             align = TextAlign.Center,
                         )
                     }
