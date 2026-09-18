@@ -23,21 +23,23 @@ import com.thelightphone.sdk.ui.designVerticalPxToSp
 @Composable
 internal fun TimeCell(text: String, modifier: Modifier = Modifier) {
     val raw = LightThemeTokens.typography.copy
-    val style = scaledTimeStyle(raw)
+    val style = scaledTimeStyleInternal(raw).copy(fontFeatureSettings = "tnum")
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
     val cellWidth = remember(style) {
         with(density) { measurer.measure("1:12:34.56", style).size.width.toDp() }
     }
+    // single Text node — one per-cell composable keeps long lists smooth
+    // (tnum tabular digits keep the columns steady like the slots did)
     Box(modifier.width(cellWidth), contentAlignment = Alignment.CenterEnd) {
-        FixedWidthTime(text = text, style = raw)
+        Text(text = text, style = style, maxLines = 1)
     }
 }
 
 @Composable
-internal fun scaledCopyStyle(): TextStyle = scaledTimeStyle(LightThemeTokens.typography.copy)
+internal fun scaledCopyStyle(): TextStyle = scaledTimeStyleInternal(LightThemeTokens.typography.copy)
 
-private @Composable fun scaledTimeStyle(style: TextStyle): TextStyle = style.copy(
+internal @Composable fun scaledTimeStyleInternal(style: TextStyle): TextStyle = style.copy(
     fontSize = style.fontSize.value.designVerticalPxToSp(),
     lineHeight = if (style.lineHeight.isSpecified) {
         style.lineHeight.value.designVerticalPxToSp()
@@ -60,7 +62,7 @@ internal fun FixedWidthTime(
 ) {
     // Scale the token style the same way LightText does (design px → sp),
     // then measure and render with that one style so slots line up exactly.
-    val scaled = scaledTimeStyle(style)
+    val scaled = scaledTimeStyleInternal(style)
 
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current

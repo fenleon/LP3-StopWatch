@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -75,6 +76,7 @@ class StopwatchScreen(sealedActivity: SealedLightActivity) :
         val isRunning by viewModel.isRunning.collectAsState()
         val elapsed by viewModel.elapsedMs.collectAsState()
         val laps by viewModel.laps.collectAsState()
+        val elapsedState = viewModel.elapsedMs.collectAsState()
 
         val focusRequester = remember { FocusRequester() }
         val haptic = rememberLightHapticClick()
@@ -116,6 +118,9 @@ class StopwatchScreen(sealedActivity: SealedLightActivity) :
                 LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
                 LightTopBar(
+                    // top-bar text actions render at the Button size
+                    // (native Calendar EDIT spec)
+                    textVariant = LightTextVariant.Button,
                     rightButton = LightBarButton.Text("HISTORY") {
                         navigateTo(screenFactory = { sealed -> HistoryScreen(sealed) })
                     },
@@ -164,8 +169,10 @@ class StopwatchScreen(sealedActivity: SealedLightActivity) :
                 }
 
                 // ---- laps: exactly three rows visible, scrollbar only past that ----
+                // the live row reads the State itself, so the 30 fps ticker
+                // doesn't recompose the list — only that one row
                 LapList(
-                    elapsed = elapsed,
+                    elapsedState = elapsedState,
                     isRunning = isRunning,
                     laps = laps,
                     modifier = Modifier.fillMaxWidth(),
@@ -222,7 +229,7 @@ private fun BarButton(label: String, onClick: () -> Unit) {
 
 @Composable
 private fun LapList(
-    elapsed: Long,
+    elapsedState: State<Long>,
     isRunning: Boolean,
     laps: List<Long>,
     modifier: Modifier = Modifier,
@@ -259,6 +266,7 @@ private fun LapList(
         // the lap in progress — freezes while stopped, counting while running
         if (laps.isNotEmpty()) {
             item(key = "live") {
+                val elapsed = elapsedState.value
                 LapRow(
                     label = "Lap ${laps.size + 1}",
                     split = elapsed - (laps.lastOrNull() ?: 0L),

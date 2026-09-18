@@ -130,6 +130,7 @@ private fun SessionRow(
                 text = formatSessionTime(session.startedAtWall) +
                     if (!confirmingDelete) "  ·  " + lapCountLabel(session.laps.size) else "",
                 variant = LightTextVariant.Fine,
+                maxLines = 1,
             )
         }
         Spacer(modifier = Modifier.width(12.dp))

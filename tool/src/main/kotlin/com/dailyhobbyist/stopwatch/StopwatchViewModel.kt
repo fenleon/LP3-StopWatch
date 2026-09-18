@@ -43,6 +43,12 @@ class StopwatchViewModel(
     private var loaded = false
     private var ticker: Job? = null
 
+    companion object {
+        /** 99:59.99 — the display cap; the watch auto-stops there. */
+        private const val MAX_ELAPSED_MS = 99L * 60_000 + 59_999
+        private const val MAX_LAPS = 99
+    }
+
     // ---- keys ----
     private val keyRunning = booleanPreferencesKey("sw_running")
     private val keyStartedAt = longPreferencesKey("sw_started_at")
@@ -97,6 +103,7 @@ class StopwatchViewModel(
 
     fun lap() {
         if (!isRunning.value) return
+        if (laps.value.size >= MAX_LAPS) return
         refreshElapsed()
         laps.value = laps.value + elapsedMs.value
         persist()
@@ -145,9 +152,22 @@ class StopwatchViewModel(
     private fun now() = System.currentTimeMillis()
 
     private fun refreshElapsed() {
-        elapsedMs.value =
+        val computed =
             if (isRunning.value) accumulated + (now() - startedAt)
             else accumulated
+        if (computed >= MAX_ELAPSED_MS) {
+            // display cap reached: clamp and auto-stop
+            if (isRunning.value) {
+                accumulated = MAX_ELAPSED_MS
+                isRunning.value = false
+                startedAt = 0L
+                stopTicker()
+                persist()
+            }
+            elapsedMs.value = MAX_ELAPSED_MS
+        } else {
+            elapsedMs.value = computed
+        }
     }
 
     private fun startTicker() {
